@@ -1,209 +1,141 @@
-# CS253 Assignment 1
+# Memory-Efficient Versioned File Indexer
 
-## Memory-Efficient Versioned File Indexer Using C++
-
----
-
-## README.md
-
-### Student Details
-
-* **Name:** Arnav Gupta
-* **Roll Number:** 240189
-* **Course:** CS253 – Software Development and Operations
+**CS253 Assignment 1**  
+**Name:** Arnav Gupta  
+**Roll Number:** 240189
 
 ---
 
-### Problem Overview
+## Overview
 
-This project implements a **memory-efficient, versioned word-level file indexer** in C++. The system is designed to process very large text files incrementally using a fixed-size buffer, without ever loading the entire file into memory. For each file (called a *version*), the program builds a word-frequency index and supports multiple analytical queries.
+This program implements a **memory-efficient, versioned word-level file indexer** in C++. It processes large text files using a fixed-size buffer (never loading the full file into memory), builds a frequency index of all words per version, and supports three analytical queries:
 
----
-
-### Key Features
-
-* Incremental file processing using a fixed-size buffer (256 KB – 1024 KB)
-* Case-insensitive word indexing
-* Correct handling of tokens split across buffer boundaries
-* Support for multiple file versions in a single execution
-* Query support:
-
-  * Word count query
-  * Difference query between two versions
-  * Top-K most frequent words query
-* Object-Oriented Design with clear separation of concerns
+- **Word Count Query** — frequency of a word in a version
+- **Top-K Query** — top K most frequent words in a version
+- **Difference Query** — frequency difference of a word between two versions
 
 ---
 
-### Design Overview
+## Project Structure
 
-The program is structured using the following main classes:
-
-1. **FileReader (Abstract Base Class)**
-   Defines a common interface for buffered file reading.
-
-2. **BufferedFileReader**
-   Reads a file incrementally using a fixed-size buffer and implements the `FileReader` interface.
-
-3. **Tokenizer**
-   Converts raw text into alphanumeric tokens (words) and correctly handles words split across buffer boundaries.
-
-4. **VersionedIndexer**
-   Maintains a mapping from version name → (word → frequency). Each version is indexed independently.
-
-5. **QueryProcessor**
-   Executes word, difference, and Top-K queries on the indexed data.
-
----
-
-### Compilation
-
-```bash
-g++ 240189_Arnav.cpp -o analyzer
+```
+240189_ArnavGupta.cpp   — C++ source code
+240189_ArnavGupta.md    — This README
+240189_ArnavGupta.pdf   — Assignment report
+240189_ArnavGupta.jpg   — Execution screenshot
 ```
 
 ---
 
-### Usage Examples
+## Classes
 
-#### Word Count Query
+| Class | Responsibility |
+|---|---|
+| `FileReader` | Abstract base class defining the `readChunk` interface |
+| `BufferedFileReader` | Reads file in fixed-size KB chunks using `ifstream` |
+| `Tokenizer` | Splits chunks into alphanumeric tokens; handles cross-boundary words via carry buffer |
+| `VersionedIndexer` | Maintains per-version word frequency maps |
+| `QueryProcessor` | Executes word, diff, and top-K queries against the index |
+
+---
+
+## Design Highlights
+
+- **OOP with Polymorphism:** `FileReader` is an abstract base class with a pure virtual `readChunk()`. `BufferedFileReader` derives from it, enabling runtime polymorphism.
+- **Template Utility:** A generic `toLowerCase<T>` function template normalizes strings for case-insensitive matching.
+- **Carry Buffer:** The `Tokenizer` class uses a `carry` string to preserve partial tokens at chunk boundaries, ensuring correct counts across buffer splits.
+- **Exception Handling:** File open errors and runtime exceptions are caught via `try/catch` blocks.
+
+---
+
+## Compilation
 
 ```bash
-#Enter the dataset file's path in the "data.txt" space.
-./analyzer --file data.txt --version v1 --buffer 512 --query word --word error
+g++ -O2 240189_ArnavGupta.cpp -o analyzer
 ```
 
-#### Top-K Query
+---
 
+## Usage
+
+### Word Count Query
 ```bash
-#Enter the dataset file's path in the "data.txt" space.
-./analyzer --file data.txt --version v1 --buffer 512 --query top --top 10
+./analyzer --file dataset_v1.txt --version v1 \
+           --buffer 512 --query word --word error
+```
+**Sample Output:**
+```
+Version: v1
+Word count: 142
+Buffer size: 512 KB
+Execution time: 0.38 seconds
 ```
 
-#### Difference Query
+---
 
+### Top-K Query
 ```bash
-#Enter the dataset files' paths in the "data1.txt" and "data2.txt" spaces respectively.
-./analyzer --file1 data1.txt --version1 v1 \
-           --file2 data2.txt --version2 v2 \
+./analyzer --file dataset_v1.txt --version v1 \
+           --buffer 512 --query top --top 10
+```
+**Sample Output:**
+```
+Top-10 words in version v1:
+error -> 142
+info -> 98
+debug -> 75
+warning -> 60
+...
+Buffer size: 512 KB
+Execution time: 0.41 seconds
+```
+
+---
+
+### Difference Query
+```bash
+./analyzer --file1 dataset_v1.txt --version1 v1 \
+           --file2 dataset_v2.txt --version2 v2 \
            --buffer 512 --query diff --word error
 ```
-
----
-
-### Output
-
-The program prints:
-
-* Version name(s)
-* Query result
-* Allocated buffer size (in KB)
-* Total execution time (in seconds)
-
----
-
-### Notes
-
-* Memory usage depends only on the number of unique words, not file size.
-* The dataset files are used as-is and are not modified.
-
----
-
-## Assignment Report
-
-### Introduction
-
-Processing large text files efficiently is a common requirement in real-world systems such as log analyzers and search engines. Loading entire files into memory can lead to excessive memory consumption and poor scalability. This assignment focuses on building a memory-efficient system that processes large files incrementally while still supporting meaningful analytical queries.
-
----
-
-### Objective
-
-The objective of this assignment is to design and implement a versioned word-level indexer in C++ that:
-
-* Processes large files using a fixed-size buffer
-* Uses object-oriented design principles
-* Demonstrates inheritance, polymorphism, templates, and exception handling
-* Supports multiple queries over indexed data
-
----
-
-### Word-Level Index
-
-A word-level index is a data structure that maps each unique word in a file to the number of times it appears. Words are defined as contiguous sequences of alphanumeric characters, and indexing is performed in a case-insensitive manner.
-
-Example:
-
+**Sample Output:**
 ```
-error debug error info
-```
-
-Produces the index:
-
-```
-error → 2
-debug → 1
-info → 1
+Difference (v2 - v1): 27
+Buffer size: 512 KB
+Execution time: 0.72 seconds
 ```
 
 ---
 
-### Buffer-Based File Processing
+## Command-Line Arguments
 
-The file is read incrementally using a fixed-size buffer (between 256 KB and 1024 KB). This ensures that:
-
-* The entire file is never loaded into memory
-* Memory usage remains independent of file size
-
-Special care is taken to handle words that are split across buffer boundaries by carrying partial tokens between reads.
-
----
-
-### Version Management
-
-Each indexed file is associated with a user-defined version name. The system supports multiple versions within a single execution, allowing comparisons between different files through difference queries.
-
----
-
-### Supported Queries
-
-1. **Word Count Query**
-   Returns the frequency of a given word in a specified version.
-
-2. **Difference Query**
-   Computes the difference in frequency of a word between two versions.
-
-3. **Top-K Query**
-   Returns the K most frequent words in a version, sorted in descending order of frequency.
+| Argument | Description |
+|---|---|
+| `--file <path>` | Input file for single-version queries |
+| `--file1 <path>` | First file for diff query |
+| `--file2 <path>` | Second file for diff query |
+| `--version <name>` | Version label for single-version queries |
+| `--version1 <name>` | Version label for first file |
+| `--version2 <name>` | Version label for second file |
+| `--buffer <kb>` | Buffer size in KB (256–1024) |
+| `--query <type>` | `word` \| `diff` \| `top` |
+| `--word <token>` | Target word for word/diff queries |
+| `--top <k>` | Number of top results |
 
 ---
 
-### Object-Oriented Design and C++ Features
+## Buffer & Memory
 
-The implementation satisfies all specified C++ requirements:
-
-* **Inheritance:** `BufferedFileReader` inherits from the abstract base class `FileReader`
-* **Runtime Polymorphism:** File reading is performed via virtual function calls
-* **Function Overloading:** Multiple query-handling functions are implemented
-* **Templates:** A utility template function is used for case normalization
-* **Exception Handling:** File I/O errors are handled using `try-catch` blocks
+- Buffer size must be between **256 KB** and **1024 KB**.
+- The tokenizer's carry buffer ensures words split across chunk boundaries are counted correctly.
+- Memory usage grows only with the number of **unique words**, not file size.
 
 ---
 
-### Performance and Memory Analysis
+## Assumptions
 
-* Memory usage grows only with the number of unique words
-* File size has no impact on memory consumption
-* Execution time scales linearly with file size
-
----
-
-### Conclusion
-
-This assignment demonstrates how careful object-oriented design and disciplined memory management can be used to build scalable systems in C++. The final implementation efficiently processes large files, supports multiple analytical queries, and adheres strictly to the given constraints and requirements.
-
----
-
-### Execution Screenshot
-
-*(Attach execution screenshot as required in the submission)*
+- Words are defined as contiguous sequences of alphanumeric characters (`[a-zA-Z0-9]`).
+- All comparisons are case-insensitive (tokens are lowercased before indexing).
+- Version names are arbitrary strings provided via CLI.
+- For `--query word` and `--query top`, only `--file` and `--version` are required.
+- For `--query diff`, `--file1`, `--file2`, `--version1`, and `--version2` are required.
